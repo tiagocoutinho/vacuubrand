@@ -28,6 +28,8 @@ import sys
 import time
 from VacuumbrandLib import VaccumDCP300 
 
+ALLOWED_COMMTYPE= ['serial', 'serialDS']
+
 class PyDsVacuuBrandClass(PyTango.DeviceClass):
 #   Class Properties
     class_property_list = {
@@ -35,6 +37,8 @@ class PyDsVacuuBrandClass(PyTango.DeviceClass):
 
     #   Device Properties
     device_property_list = {
+        'CommType':[PyTango.DevString,'serialDS or serial.', 'serialDS' ],
+        'dsName' : [PyTango.DevString,'DSName', ''],                
         'port':[PyTango.DevString, 'Serial port name', '/dev/ttyS0' ],  
         'baudrate': [PyTango.DevLong, 'Serial port bautrate', 19200 ],
         }
@@ -63,9 +67,18 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
     def init_device(self):
         self.info_stream('In Python init_device method')
         self.get_device_properties(self.get_device_class())
-        self.vacuum_device = VaccumDCP300(port=self.port, baudrate=self.baudrate)
-
-
+        self.CommType = self.CommType.lower()
+        try:
+            self.vacuum_device = VaccumDCP300(commType=self.CommType, 
+                                              dsName=self.dsName,
+                                              port=self.port, 
+                                              baudrate=self.baudrate)
+        except Exception, e:
+            msg = 'In %s::init_device() error while initializing communication: %s' % (self.get_name(), repr(e))
+            self.error_stream(msg)
+            self._set_state(PyTango.DevState.FAULT, msg)
+            return
+        
     #------------------------------------------------------------------
 
     @PyTango.DebugIt()
