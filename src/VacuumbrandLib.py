@@ -1,49 +1,35 @@
 import serial
 import logging
 import re
-import taurus
+import sys
 
-class CommType(object):
-    Serial = 'serial'
-    DS_Serial = 'serialDS'
+
+
+
 
 UNITS = { '0': 'mbar',
           '1': 'Torr',
           '2': 'hPa'   
           }
 
+
+
 class VaccumDCP300(object):
     
-    def __init__(self, comm, dsname=None, port='/dev/ttyS0', baudrate=19200, # baud rate
+    def __init__(self, port='/dev/ttyS0', baudrate=19200,   # baud rate
                  bytesize=serial.EIGHTBITS,    # number of data bits
                  parity=serial.PARITY_NONE,    # enable parity checking
                  stopbits=serial.STOPBITS_ONE, # number of stop bits
-                 timeout=3,          # set a timeout value, None to wait forever
-                 rtscts=True,  ):
-        
-        if comm == CommType.Serial:
-            self._comm = serial.Serial(port, baudrate=baudrate, 
-                                       bytesize=bytesize,
-                                       parity=parity, stopbits=stopbits, 
-                                       timeout=timeout, rtscts=rtscts)
-            self.read = self._readSerial
-            self.write = self._writeSerial
-            
-        elif comm == CommType.DS_Serial:
-            self.device = taurus.Device(dsName)
-            self.read = self._readDS
-            self.write = self._writeDS
-            
-        else:
-            msg="This CommType is not allowed"
-            raise ValueError(msg)
-            
+                 timeout=3):        # set a timeout value, None to wait forever
+                 
+       
+        self._comm = serial.Serial(port, baudrate=baudrate, bytesize=bytesize,
+                                 parity=parity, stopbits=stopbits, 
+                                 timeout=timeout)
         logging.debug('Created VaccumDCP300 object') 
-
-    def _readDS(self):
-        pass
+        self._open()
     
-    def _readSerial(self):
+    def _read(self):
         try:
             logging.debug('Reading response')
             result = self._comm.readline()
@@ -53,10 +39,7 @@ class VaccumDCP300(object):
             result = None
         return result
 
-    def _writeDS(self):
-        pass
-    
-    def _writeSerial(self, data):
+    def _write(self, data):
         
         try:
             logging.debug('Writing command')
@@ -67,19 +50,30 @@ class VaccumDCP300(object):
         return True
 
     def sendCmd(self, cmd):
+        
         logging.debug('Sending %s command', cmd)
-        if self.write(cmd):
-            return self.read()
+        if self._write(cmd):
+            return self._read()
         return None
     
-    def _openCom(self):
+    def _open(self):
+        
         logging.debug('Opening Port')
         self._comm.open()
             
-    def _closeCom(self):
+    def _close(self):
+        
         logging.debug('Closing Port')
         self._comm.close()
                  
+    def __exit__(self):
+        
+        self._close()
+        
+    def __del__(self):
+        
+        self._close()
+        
     def _getUnit(self):
         
         cfg_cmd= 'IN_CFG'
@@ -95,15 +89,16 @@ class VaccumDCP300(object):
         logging.debug('Cleaned response:  %s ', data)
         
         return data    
+        
             
 if __name__ == '__main__':
     format ='%(asctime)s %(levelname)s:%(message)s'
     level = logging.DEBUG
     logging.basicConfig(format=format,level=level)
     
-    port = sys.arg[1]
     cmd_test= 'IN_PV_1'
-    a = VaccumDCP300(commType=CommType.Serial, port=port)
+    port = sys.argv[1]
+    a = VaccumDCP300(port=port)
     r = a.sendCmd(cmd_test)
     a._getValueFromResponse(r)
     a._getUnit()

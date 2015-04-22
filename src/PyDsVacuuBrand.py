@@ -28,8 +28,6 @@ import sys
 import time
 from VacuumbrandLib import VaccumDCP300 
 
-ALLOWED_COMMTYPE= ['serial', 'serialDS']
-
 class PyDsVacuuBrandClass(PyTango.DeviceClass):
 #   Class Properties
     class_property_list = {
@@ -37,8 +35,6 @@ class PyDsVacuuBrandClass(PyTango.DeviceClass):
 
     #   Device Properties
     device_property_list = {
-        'CommType':[PyTango.DevString,'serialDS or serial.', 'serialDS' ],
-        'dsName' : [PyTango.DevString,'DSName', ''],                
         'port':[PyTango.DevString, 'Serial port name', '/dev/ttyS0' ],  
         'baudrate': [PyTango.DevLong, 'Serial port bautrate', 19200 ],
         }
@@ -47,7 +43,7 @@ class PyDsVacuuBrandClass(PyTango.DeviceClass):
     cmd_list = {}
    
     attr_list = {
-                 'Current_Pressure':[[PyTango.ArgType.DevDouble, 
+                 'Current_Pressure':[[PyTango.ArgType.DevString, 
                               PyTango.AttrDataFormat.SCALAR,
                               PyTango.AttrWriteType.READ]],}
     
@@ -67,18 +63,9 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
     def init_device(self):
         self.info_stream('In Python init_device method')
         self.get_device_properties(self.get_device_class())
-        self.CommType = self.CommType.lower()
-        try:
-            self.vacuum_device = VaccumDCP300(commType=self.CommType, 
-                                              dsName=self.dsName,
-                                              port=self.port, 
-                                              baudrate=self.baudrate)
-        except Exception, e:
-            msg = 'In %s::init_device() error while initializing communication: %s' % (self.get_name(), repr(e))
-            self.error_stream(msg)
-            self._set_state(PyTango.DevState.FAULT, msg)
-            return
-        
+        self.vacuum_device = VaccumDCP300(port=self.port, baudrate=self.baudrate)
+
+
     #------------------------------------------------------------------
 
     @PyTango.DebugIt()
@@ -95,7 +82,7 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
         self.info_stream("read_Current_Pressure")
         #Current Pressure command
         cmd = 'IN_PV_1'
-        current_pressure = self.vacuum_device.sendcmd(cmd)
+        current_pressure = self.vacuum_device.sendCmd(cmd)
         the_att.set_value(current_pressure)
 
     @PyTango.DebugIt()
