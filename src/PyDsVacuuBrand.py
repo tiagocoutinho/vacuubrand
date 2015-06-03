@@ -43,7 +43,7 @@ class PyDsVacuuBrandClass(PyTango.DeviceClass):
     cmd_list = {}
    
     attr_list = {
-                 'Current_Pressure':[[PyTango.ArgType.DevDouble, 
+                 'Current_Pressure':[[PyTango.ArgType.DevString, 
                               PyTango.AttrDataFormat.SCALAR,
                               PyTango.AttrWriteType.READ]],}
     
@@ -82,7 +82,7 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
         self.info_stream("read_Current_Pressure")
         #Current Pressure command
         cmd = 'IN_PV_1'
-        current_pressure = self.vacuum_device.sendcmd(cmd)
+        current_pressure = self.vacuum_device.sendCmd(cmd)
         the_att.set_value(current_pressure)
 
     @PyTango.DebugIt()

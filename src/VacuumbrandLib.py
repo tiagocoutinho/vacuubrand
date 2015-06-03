@@ -1,7 +1,7 @@
 import serial
 import logging
 import re
-
+import sys
 
 
 
@@ -20,12 +20,12 @@ class VaccumDCP300(object):
                  bytesize=serial.EIGHTBITS,    # number of data bits
                  parity=serial.PARITY_NONE,    # enable parity checking
                  stopbits=serial.STOPBITS_ONE, # number of stop bits
-                 timeout=3,          # set a timeout value, None to wait forever
-                 rtscts=True,  ):
+                 timeout=3):        # set a timeout value, None to wait forever
+                 
        
         self._comm = serial.Serial(port, baudrate=baudrate, bytesize=bytesize,
                                  parity=parity, stopbits=stopbits, 
-                                 timeout=timeout, rtscts=rtscts)
+                                 timeout=timeout)
         logging.debug('Created VaccumDCP300 object') 
         self._open()
     
@@ -97,7 +97,8 @@ if __name__ == '__main__':
     logging.basicConfig(format=format,level=level)
     
     cmd_test= 'IN_PV_1'
-    a = VaccumDCP300()
+    port = sys.argv[1]
+    a = VaccumDCP300(port=port)
     r = a.sendCmd(cmd_test)
     a._getValueFromResponse(r)
     a._getUnit()
