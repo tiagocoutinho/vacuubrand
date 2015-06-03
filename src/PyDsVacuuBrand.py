@@ -58,11 +58,13 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
         PyTango.Device_4Impl.__init__(self, cl, name)
         self.info_stream('In PyDsVacuuBrand.__init__')
         PyDsVacuuBrand.init_device(self)
+        self.set_state(PyTango.DevState.ON)
 
     @PyTango.DebugIt()
     def init_device(self):
         self.info_stream('In Python init_device method')
         self.get_device_properties(self.get_device_class())
+        self.info_stream('port: %s baudrate: %s' % (self.port, self.baudrate))
         self.vacuum_device = VaccumDCP300(port=self.port, baudrate=self.baudrate)
 
 
@@ -86,7 +88,7 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
         the_att.set_value(current_pressure)
 
     @PyTango.DebugIt()
-    def is_Current_allowed(self, req_type):
+    def is_Current_Pressure_allowed(self, req_type):
         return self.get_state() in (PyTango.DevState.ON,)
         
 
