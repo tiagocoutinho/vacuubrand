@@ -4,8 +4,7 @@
 #
 # file :       PyDsVacuuBrand.py 
 #
-# description : The device server is to communicate with the DigiXBee used for 
-#               drain current of PEEM.  
+# description : The device server is to communicate with the VacuuBrand.  
 #
 # project :     TANGO Device Server
 #
@@ -43,7 +42,10 @@ class PyDsVacuuBrandClass(PyTango.DeviceClass):
     cmd_list = {}
    
     attr_list = {
-                 'Current_Pressure':[[PyTango.ArgType.DevString, 
+                 'Pressure':[[PyTango.ArgType.DevFloat, 
+                              PyTango.AttrDataFormat.SCALAR,
+                              PyTango.AttrWriteType.READ]],
+                 'Unit':[[PyTango.ArgType.DevString, 
                               PyTango.AttrDataFormat.SCALAR,
                               PyTango.AttrWriteType.READ]],}
     
@@ -80,17 +82,20 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
     #------------------------------------------------------------------
 
     @PyTango.DebugIt()
-    def read_Current_Pressure(self, the_att):
-        self.info_stream("read_Current_Pressure")
+    def read_Pressure(self, the_att):
+        self.info_stream("read_Pressure")
         #Current Pressure command
         cmd = 'IN_PV_1'
-        current_pressure = self.vacuum_device.sendCmd(cmd)
-        the_att.set_value(current_pressure)
+        pressure = self.vacuum_device.sendCmd(cmd)
+        pressure = self.vacuum_device._getValueFromResponse(pressure)
+        the_att.set_value(float(pressure))
 
     @PyTango.DebugIt()
-    def is_Current_Pressure_allowed(self, req_type):
+    def is_Pressure_allowed(self, req_type):
         return self.get_state() in (PyTango.DevState.ON,)
-        
+       
+    def read_Unit(self, the_att):
+        the_att.set_value(self.vacuum_device._getUnit())
 
 if __name__ == '__main__':
     util = PyTango.Util(sys.argv)

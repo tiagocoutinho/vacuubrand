@@ -3,16 +3,10 @@ import logging
 import re
 import sys
 
-
-
-
-
 UNITS = { '0': 'mbar',
           '1': 'Torr',
           '2': 'hPa'   
           }
-
-
 
 class VaccumDCP300(object):
     
@@ -21,8 +15,7 @@ class VaccumDCP300(object):
                  parity=serial.PARITY_NONE,    # enable parity checking
                  stopbits=serial.STOPBITS_ONE, # number of stop bits
                  timeout=3):        # set a timeout value, None to wait forever
-                 
-       
+    
         self._comm = serial.Serial(port, baudrate=baudrate, bytesize=bytesize,
                                  parity=parity, stopbits=stopbits, 
                                  timeout=timeout)
@@ -84,13 +77,11 @@ class VaccumDCP300(object):
         return unit
         
     def _getValueFromResponse(self,data):
-        
         data = (re.findall("\d+.\d+",data))[0]
         logging.debug('Cleaned response:  %s ', data)
         
         return data    
         
-            
 if __name__ == '__main__':
     format ='%(asctime)s %(levelname)s:%(message)s'
     level = logging.DEBUG
