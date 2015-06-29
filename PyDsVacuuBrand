@@ -1,5 +1,6 @@
-#!/usr/bin/bash
-. alba_blissrc
-cd $SICILIA/ds/python/PyDsVacuuBrand/src
+#!/bin/sh
 
-python PyDsVacuuBrand.py $*
+. alba_blissrc
+DS=PyDsVacuuBrand
+cd $SICILIA/ds/python/$DS
+screen -dm -S $DS-$1 python $DS.py $1
