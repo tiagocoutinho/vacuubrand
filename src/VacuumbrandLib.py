@@ -37,6 +37,8 @@ class VaccumDCP300(object):
         try:
             logging.debug('Writing command')
             data = data + '\n'
+            self._comm.flush()
+            self._comm.flushInput() 
             self._comm.write(data)
         except Exception, e:
             return False
