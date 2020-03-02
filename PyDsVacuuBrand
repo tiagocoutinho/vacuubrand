@@ -1,6 +1,0 @@
-#!/bin/sh
-
-. alba_blissrc
-DS=PyDsVacuuBrand
-cd $SICILIA/ds/python/$DS
-screen -dm -S $DS-$1 python $DS.py $1

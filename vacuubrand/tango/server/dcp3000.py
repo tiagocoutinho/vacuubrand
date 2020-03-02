@@ -25,7 +25,8 @@
 import PyTango
 import sys
 import time
-from VacuumbrandLib import VaccumDCP300 
+from vacuubrand.dcp3000 import VaccumDCP300
+
 
 class PyDsVacuuBrandClass(PyTango.DeviceClass):
 #   Class Properties
@@ -97,10 +98,15 @@ class PyDsVacuuBrand(PyTango.Device_4Impl):
     def read_Unit(self, the_att):
         the_att.set_value(self.vacuum_device._getUnit())
 
-if __name__ == '__main__':
+
+def main():
     util = PyTango.Util(sys.argv)
     util.add_class(PyDsVacuuBrandClass, PyDsVacuuBrand)
 
     U = PyTango.Util.instance()
     U.server_init()
     U.server_run()
+
+
+if __name__ == '__main__':
+    main()
