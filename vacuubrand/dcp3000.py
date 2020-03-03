@@ -1,98 +1,129 @@
-import serial
 import logging
-import re
-import sys
 
-UNITS = { '0': 'mbar',
-          '1': 'Torr',
-          '2': 'hPa'   
-          }
+import serial
 
-class VaccumDCP300(object):
-    
-    def __init__(self, port='/dev/ttyS0', baudrate=19200,   # baud rate
-                 bytesize=serial.EIGHTBITS,    # number of data bits
-                 parity=serial.PARITY_NONE,    # enable parity checking
-                 stopbits=serial.STOPBITS_ONE, # number of stop bits
-                 timeout=3):        # set a timeout value, None to wait forever
-    
-        self._comm = serial.Serial(port, baudrate=baudrate, bytesize=bytesize,
-                                 parity=parity, stopbits=stopbits, 
-                                 timeout=timeout)
-        logging.debug('Created VaccumDCP300 object') 
-        self._open()
-    
-    def _read(self):
-        try:
-            logging.debug('Reading response')
-            result = self._comm.readline()
-            logging.debug('Read %s Value', repr(result))
 
-        except Exception, e:
-            result = None
-        return result
+UNITS = {
+    '0': 'mbar',
+    '1': 'Torr',
+    '2': 'hPa'
+}
 
-    def _write(self, data):
-        
-        try:
-            logging.debug('Writing command')
-            data = data + '\n'
-            self._comm.flush()
-            self._comm.flushInput() 
-            self._comm.write(data)
-        except Exception, e:
-            return False
-        return True
 
-    def sendCmd(self, cmd):
-        
-        logging.debug('Sending %s command', cmd)
-        if self._write(cmd):
-            return self._read()
-        return None
-    
-    def _open(self):
-        
-        logging.debug('Opening Port')
-        self._comm.open()
-            
-    def _close(self):
-        
-        logging.debug('Closing Port')
-        self._comm.close()
-                 
-    def __exit__(self):
-        
-        self._close()
-        
-    def __del__(self):
-        
-        self._close()
-        
-    def _getUnit(self):
-        
-        cfg_cmd= 'IN_CFG'
-        cfg = self.sendCmd(cfg_cmd)
-        unit = UNITS[cfg[1]]
-        logging.debug('Unit: %s', unit)
+ERRORS = [
+    'venting valve fault',
+    'overpressure',
+    'pressure transducer fault',
+    'external fault',
+#    'last serial command incorrect'
+]
 
-        return unit
-        
-    def _getValueFromResponse(self,data):
-        data = (re.findall("\d+.\d+",data))[0]
-        logging.debug('Cleaned response:  %s ', data)
-        
-        return data    
-        
-if __name__ == '__main__':
-    format ='%(asctime)s %(levelname)s:%(message)s'
-    level = logging.DEBUG
-    logging.basicConfig(format=format,level=level)
-    
-    cmd_test= 'IN_PV_1'
-    port = sys.argv[1]
-    a = VaccumDCP300(port=port)
-    r = a.sendCmd(cmd_test)
-    a._getValueFromResponse(r)
-    a._getUnit()
-    
+torr_to_mbar = 1.3332236842105263
+
+def decode_config(text):
+    assert len(text) == 7, text
+    return dict(unit=UNITS[text[1]],
+                acoustic_signal=text[2] == '1',
+                venting_valve_connected=text[3] == '1',
+                fault_indicator_connected=text[4] == '1',
+                nb_active_pressure_transducers=int(text[5]),
+                nb_pressure_transducers=int(text[6]))
+
+
+def decode_pressure(text):
+    value, unit = text.lower().split()
+    value = float(value)
+    if unit == 'torr':
+        value *= torr_to_mbar
+    return value
+
+
+def decode_pressures(text):
+    """decode pressure(s). Always return values in millibar"""
+    *values, unit = text.lower().split()
+    values = [float(value) for value in values]
+    if unit == 'torr':
+        values = [value * torr_to_mbar for value in values]
+    return values
+
+
+def decode_errors(text):
+    """return a list of errors"""
+    assert len(text) == 5, text
+    # ignore 'last serial command incorrect' because it seems
+    # to be always active
+    text = text[:-1]
+    return [error for i, error in zip(text, ERRORS) if i == '1']
+
+
+def decode_interval(text):
+    minutes, seconds = [int(v) for v in text[:4].split(':')]
+    return minutes*60 + seconds
+
+
+class DCP300:
+
+    def __init__(self, connection):
+        """
+        Args:
+            connection (object): any object with write_readline method.
+                Typical are sockio.TCP or serialio.aio.tcp.Serial
+        """
+        self._log = logging.getLogger('vacuubrand.DCP300')
+        self._conn = connection
+
+    def _ask(self, request):
+        request = (request + '\r\n').encode()
+        reply = self._conn.write_readline(request)
+        return reply.decode().strip()
+
+    def _send(self, request):
+        request = (request + '\r\n').encode()
+        reply = self._conn.write(request)
+
+    @property
+    def config(self):
+        return decode_config(self._ask('IN_CFG'))
+
+    @property
+    def actual_pressure(self):
+        return decode_pressure(self._ask('IN_PV_1'))
+
+    def read_transducer_pressure(self, channel=1):
+        return decode_pressure(self._ask('IN_PV_S{}'.format(channel)))
+
+    @property
+    def transducer_pressures(self):
+        return decode_pressures(self._ask('IN_PV_X'))
+
+    @property
+    def event_time_interval(self):
+        return decode_interval(self._ask('IN_SP_1'))
+
+    @event_time_interval.setter
+    def event_time_interval(self, event_time_interval):
+        self._send('OUT_SP_1 {}'.format(event_time_interval))
+
+    @property
+    def recording_time_interval(self):
+        return decode_interval(self._ask('IN_SP_2'))
+
+    @recording_time_interval.setter
+    def recording_time_interval(self, recording_time_interval):
+        self._send('OUT_SP_2 {}'.format(recording_time_interval))
+
+    @property
+    def errors(self):
+        return decode_errors(self._ask('IN_ERR'))
+
+    @property
+    def software_version(self):
+        return self._ask('IN_VER')
+
+    def remote(self, on_off):
+        self._send('REMOTE {}'.format('1' if on_off else '-'))
+
+    def venting(self, valve):
+        # valve closed(0), valve open(1), until atm. pressure(2)
+        assert valve in (0, 1, 2)
+        self._send('OUT_VENT {}'.format(valve))
