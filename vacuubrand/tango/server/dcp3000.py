@@ -16,17 +16,35 @@ class DCP3000(Device):
     def pressure(self):
         return self.dcp.pressure()
 
+    @attribute(unit='mbar')
+    def transducer_pressure(self):
+        return self.dcp.transducer_pressure()
+
+    @attribute(dtype=[str])
+    def errors(self):
+        return self.dcp.errors()
+
+    @attribute(dtype=str)
+    def software_version(self):
+        return self.dcp.software_version()
+
+    @command
+    def open_venting_value(self):
+        self.dcp.open_venting_value()
+
+    @command
+    def close_venting_valve(self):
+        self.dcp.close_venting_valve()
+
+    @command
+    def vent(self):
+        self.dcp.vent()
 
 
 def main():
-    import sys
-    import logging
-    from tango.server import run
-    args = ['Vacuubrand'] + sys.argv[1:]
-    logging.basicConfig(level="DEBUG")
-    run((DCP3000,), args=args)
+    DCP3000.run_server()
 
 
 if __name__ == '__main__':
     main()
-        
+
