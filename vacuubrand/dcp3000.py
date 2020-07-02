@@ -1,4 +1,5 @@
 import logging
+import threading
 
 
 UNITS = {
@@ -64,9 +65,11 @@ def decode_interval(text):
 def serial_for_url(url, *args, **kwargs):
     import serial
     conn = serial.serial_for_url(url, *args, **kwargs)
+    lock = threading.Lock()
     def write_readline(data):
-        conn.write(data)
-        return conn.readline()
+        with lock:
+            conn.write(data)
+            return conn.readline()
     conn.write_readline = write_readline
     return conn
 
