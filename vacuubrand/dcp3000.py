@@ -1,7 +1,5 @@
 import logging
 
-import serial
-
 
 UNITS = {
     '0': 'mbar',
@@ -64,6 +62,7 @@ def decode_interval(text):
 
 
 def serial_for_url(url, *args, **kwargs):
+    import serial
     conn = serial.serial_for_url(url, *args, **kwargs)
     def write_readline(data):
         conn.write(data)
