@@ -93,49 +93,48 @@ class DCP3000:
         request = (request + '\r\n').encode()
         reply = self._conn.write(request)
 
-    @property
     def config(self):
         return decode_config(self._ask('IN_CFG'))
 
-    @property
-    def actual_pressure(self):
+    def pressure(self):
         return decode_pressure(self._ask('IN_PV_1'))
 
-    def read_transducer_pressure(self, channel=1):
+    def transducer_pressure(self, channel=1):
         return decode_pressure(self._ask('IN_PV_S{}'.format(channel)))
 
-    @property
     def transducer_pressures(self):
         return decode_pressures(self._ask('IN_PV_X'))
 
-    @property
-    def event_time_interval(self):
+    def event_time_interval(self, value: int = None):
+        if value is not None:
+            self._send('OUT_SP_1 {}'.format(value))
         return decode_interval(self._ask('IN_SP_1'))
 
-    @event_time_interval.setter
-    def event_time_interval(self, event_time_interval):
-        self._send('OUT_SP_1 {}'.format(event_time_interval))
-
-    @property
-    def recording_time_interval(self):
+    def recording_time_interval(self, value: int = None):
+        if value is not None:
+            self._send('OUT_SP_2 {}'.format(value))
         return decode_interval(self._ask('IN_SP_2'))
 
-    @recording_time_interval.setter
-    def recording_time_interval(self, recording_time_interval):
-        self._send('OUT_SP_2 {}'.format(recording_time_interval))
-
-    @property
     def errors(self):
         return decode_errors(self._ask('IN_ERR'))
 
-    @property
     def software_version(self):
         return self._ask('IN_VER')
 
     def remote(self, on_off):
         self._send('REMOTE {}'.format('1' if on_off else '-'))
 
-    def venting(self, valve):
+    def close_venting_valve(self):
+        self._venting(0)
+
+    def open_venting_value(self):
+        self._venting(1)
+
+    def vent(self):
+        """venting until atmospheric pressure"""
+        self._venting(2)
+
+    def _venting(self, valve):
         # valve closed(0), valve open(1), until atm. pressure(2)
-        assert valve in (0, 1, 2)
+        assert valve in {0, 1, 2}
         self._send('OUT_VENT {}'.format(valve))

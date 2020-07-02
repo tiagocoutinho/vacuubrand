@@ -14,7 +14,8 @@ class DCP3000(Device):
 
     @attribute(unit='mbar')
     def pressure(self):
-        return self.dcp.actual_pressure
+        return self.dcp.pressure()
+
 
 
 def main():
