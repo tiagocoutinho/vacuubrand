@@ -18,7 +18,9 @@ ERRORS = [
 #    'last serial command incorrect'
 ]
 
+
 torr_to_mbar = 1.3332236842105263
+
 
 def decode_config(text):
     assert len(text) == 7, text
@@ -61,7 +63,16 @@ def decode_interval(text):
     return minutes*60 + seconds
 
 
-class DCP300:
+def serial_for_url(url, *args, **kwargs):
+    conn = serial.serial_for_url(url, *args, **kwargs)
+    def write_readline(data):
+        conn.write(data)
+        return conn.readline()
+    conn.write_readline = write_readline
+    return conn
+
+
+class DCP3000:
 
     def __init__(self, connection):
         """
@@ -74,7 +85,9 @@ class DCP300:
 
     def _ask(self, request):
         request = (request + '\r\n').encode()
+        self._log.debug('request: %r', request)
         reply = self._conn.write_readline(request)
+        self._log.debug('reply: %r', reply)
         return reply.decode().strip()
 
     def _send(self, request):
