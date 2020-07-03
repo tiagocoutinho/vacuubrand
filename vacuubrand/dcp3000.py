@@ -79,7 +79,6 @@ def serial_for_url(url, *args, **kwargs):
     def back_pressure():
         now = time.monotonic()
         wait = SERIAL_LATENCY - now + conn._last_comm
-        print(wait)
         if wait > 0:
             time.sleep(wait)
 
@@ -91,19 +90,22 @@ def serial_for_url(url, *args, **kwargs):
 
     def send(data):
         back_pressure()
-        conn.write(data)
-        self._last_comm = time.monotonic()
+        try:
+            conn.write(data)
+        finally:
+            self._last_comm = time.monotonic()
 
     def write_readline(data):
         back_pressure()
-        with lock:
-            garbage = conn.consume()
-            if garbage:
-                logging.warning('disposed of %r', garbage)
-            conn.write(data)
-            result = conn.readline()
-        conn._last_comm = time.monotonic()
-        return result
+        try:
+            with lock:
+                garbage = conn.consume()
+                if garbage:
+                    logging.warning('disposed of %r', garbage)
+                conn.write(data)
+                return conn.readline()
+        finally:
+            conn._last_comm = time.monotonic()
     conn.consume = consume
     conn.send = send
     conn.write_readline = write_readline
