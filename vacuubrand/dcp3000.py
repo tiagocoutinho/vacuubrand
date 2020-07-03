@@ -167,7 +167,7 @@ class DCP3000:
         on_off = 1 if on_off else 2
         if value is not None:
             self._send('OUT_SP_{}{} {} mbar'.format(on_off, channel, value))
-        return decode_pressure(self._ask('IN_SP_{}{}'.format(on_off, channel)))
+        return self._ask('IN_SP_{}{}'.format(on_off, channel))
 
     def on_setpoint(self, channel: int, value: (float, 'mbar') = None):
         return self._set_point(channel, True, value=value)

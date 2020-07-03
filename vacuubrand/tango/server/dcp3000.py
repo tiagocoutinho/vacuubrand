@@ -130,35 +130,35 @@ class DCP3000(Device):
     def version(self):
         return self.last_values['version']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def on_setpoint_1(self):
         return self.last_values['on_setpoint_1']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def on_setpoint_2(self):
         return self.last_values['on_setpoint_2']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def on_setpoint_3(self):
         return self.last_values['on_setpoint_3']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def on_setpoint_4(self):
         return self.last_values['on_setpoint_4']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def off_setpoint_1(self):
         return self.last_values['off_setpoint_1']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def off_setpoint_2(self):
         return self.last_values['off_setpoint_2']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def off_setpoint_3(self):
         return self.last_values['off_setpoint_3']
 
-    @attribute(dtype=float)
+    @attribute(dtype=str)
     def off_setpoint_4(self):
         return self.last_values['off_setpoint_4']
 
