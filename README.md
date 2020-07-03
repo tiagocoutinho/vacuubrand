@@ -34,11 +34,11 @@ Here is how to connect to a DCP 3000 controller:
 from vacuubrand.dcp3000 import DCP3000, serial_for_url
 
 def main():
-    # could also be a socket bridge (ser2net): 'socket://<host>:<port>'
+    # could also be a socket bridge: 'socket://<host>:<port>'
     comm = serial_for_url('/dev/ttyS0')
     dcp = DCP3000(comm)
 
-    print(dcp.actual_pressure)
+    print(dcp.pressure())
 
 
 main()
@@ -53,7 +53,12 @@ a serial to tcp bridge using [ser2net](https://linux.die.net/man/8/ser2net) or
 Assuming your device is connected to `/dev/ttyS0` and the baudrate is set to 19200,
 here is how you could use socat to expose your device on the machine port 5000:
 
-`socat -v TCP-LISTEN:5000,reuseaddr,fork file:/dev/ttyS0,rawer,b19200,cs8,eol=10,icanon=1`
+`socat -v TCP-LISTEN:8500,reuseaddr,fork file:/dev/ttyS0,rawer,b19200,cs8,eol=10,icanon=1`
+
+The equivalent line in ser2net config file would be:
+```
+8500:raw:0:/dev/ttyR15:19200 8DATABITS NONE 1STOPBIT
+```
 
 It might be worth considering starting socat or ser2net as a service using
 [supervisor](http://supervisord.org/) or [circus](https://circus.rtfd.io/).
