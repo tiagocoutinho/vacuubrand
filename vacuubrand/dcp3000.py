@@ -1,6 +1,10 @@
+import time
 import logging
 import threading
 
+
+# max 20 commands/s (according to doc) <=> 50 ms (put 60 to be safe side)
+SERIAL_LATENCY = 0.06
 
 UNITS = {
     '0': 'mbar',
@@ -51,8 +55,6 @@ def decode_pressures(text):
 def decode_errors(text):
     """return a list of errors"""
     assert len(text) == 5, text
-    # ignore 'last serial command incorrect' because it seems
-    # to be always active
     text = text[:-1]
     return [error for i, error in zip(text, ERRORS) if i == '1']
 
@@ -64,17 +66,53 @@ def decode_interval(text):
 
 def serial_for_url(url, *args, **kwargs):
     import serial
-    conn = serial.serial_for_url(url, *args, **kwargs)
+    opts = dict(
+        baudrate=19200, bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+        xonxoff=False, rtscts=False, timeout=1
+    )
+    opts.update(kwargs)
+    conn = serial.serial_for_url(url, *args, **opts)
     lock = threading.Lock()
+    conn._last_comm = 0
+
+    def back_pressure():
+        now = time.monotonic()
+        wait = SERIAL_LATENCY - now + conn._last_comm
+        print(wait)
+        if wait > 0:
+            time.sleep(wait)
+
+    def consume():
+        data = []
+        while(conn.in_waiting):
+            data.append(conn.read(conn.in_waiting))
+        return b''.join(data)
+
+    def send(data):
+        back_pressure()
+        conn.write(data)
+        self._last_comm = time.monotonic()
+
     def write_readline(data):
+        back_pressure()
         with lock:
+            garbage = conn.consume()
+            if garbage:
+                logging.warning('disposed of %r', garbage)
             conn.write(data)
-            return conn.readline()
+            result = conn.readline()
+        conn._last_comm = time.monotonic()
+        return result
+    conn.consume = consume
+    conn.send = send
     conn.write_readline = write_readline
     return conn
 
 
 class DCP3000:
+
+    latency = 0.06
 
     def __init__(self, connection):
         """
@@ -85,16 +123,20 @@ class DCP3000:
         self._log = logging.getLogger('vacuubrand.DCP300')
         self._conn = connection
 
+    def close(self):
+        self._conn.close()
+
     def _ask(self, request):
-        request = (request + '\r\n').encode()
+        request = (request + '\n').encode()
         self._log.debug('request: %r', request)
         reply = self._conn.write_readline(request)
         self._log.debug('reply: %r', reply)
         return reply.decode().strip()
 
     def _send(self, request):
-        request = (request + '\r\n').encode()
-        reply = self._conn.write(request)
+        request = (request + '\n').encode()
+        self._log.debug('command: %r', request)
+        self._conn.write(request)
 
     def config(self):
         return decode_config(self._ask('IN_CFG'))
@@ -118,26 +160,37 @@ class DCP3000:
             self._send('OUT_SP_2 {}'.format(value))
         return decode_interval(self._ask('IN_SP_2'))
 
+    def _set_point(self, channel: int, on_off: bool, value: (float, 'mbar') = None):
+        assert channel in {1, 2, 3, 4}
+        on_off = 1 if on_off else 2
+        if value is not None:
+            self._send('OUT_SP_{}{} {} mbar'.format(on_off, channel, value))
+        return decode_pressure(self._ask('IN_SP_{}{}'.format(on_off, channel)))
+
+    def on_setpoint(self, channel: int, value: (float, 'mbar') = None):
+        return self._set_point(channel, True, value=value)
+
+    def off_setpoint(self, channel: int, value: (float, 'mbar') = None):
+        return self._set_point(channel, False, value=value)
+
     def errors(self):
         return decode_errors(self._ask('IN_ERR'))
 
-    def software_version(self):
+    def version(self):
         return self._ask('IN_VER')
 
-    def remote(self, on_off):
-        self._send('REMOTE {}'.format('1' if on_off else '-'))
+    def switch_on(self):
+        self._send('REMOTE 1')
+
+    def switch_off(self):
+        self._send('REMOTE -')
 
     def close_venting_valve(self):
-        self._venting(0)
+        self._send('OUT_VENT 0')
 
     def open_venting_value(self):
-        self._venting(1)
+        self._send('OUT_VENT 1')
 
     def vent(self):
         """venting until atmospheric pressure"""
-        self._venting(2)
-
-    def _venting(self, valve):
-        # valve closed(0), valve open(1), until atm. pressure(2)
-        assert valve in {0, 1, 2}
-        self._send('OUT_VENT {}'.format(valve))
+        self._send('OUT_VENT 2')
