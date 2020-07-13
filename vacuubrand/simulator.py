@@ -25,7 +25,6 @@ DEFAULT = {
     "IN_VER": "DCP 3000  V2.30",
     "IN_PV_S1": "1005.7 mbar",
     "IN_ERR": "00000",
-
 }
 
 
@@ -48,6 +47,7 @@ class DCP3000(BaseDevice):
             return
         elif line == 'IN_PV_1':
             v = "1004.1" if self._on else "0000.0"
-            return v + " mbar\r\n"
-        return self._config[line].encode() + b"\r\n"
+            return (v + " mbar\r\n").encode()
+        result = self._config.get(line)
+        return None if result is None else (result.encode() + b"\r\n")
 
