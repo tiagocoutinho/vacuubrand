@@ -5,7 +5,7 @@
 import sys
 from setuptools import setup, find_packages
 
-requirements = ["pyserial"]
+requirements = ["connio"]
 
 with open("README.md") as f:
     description = f.read()
@@ -25,7 +25,7 @@ setup(
         ]
     },
     extras_require={
-        "tango": ["pytango"],
+        "tango": ["pytango>=9"],
         "simulator": ["sinstruments>=1"]
     },
     classifiers=[
@@ -35,7 +35,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7"
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8"
     ],
     install_requires=requirements,
     license="LGPLv3",

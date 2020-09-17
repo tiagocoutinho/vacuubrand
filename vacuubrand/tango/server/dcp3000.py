@@ -1,6 +1,8 @@
-import serial
-from tango import DevState
+import urllib.parse
+
+from tango import DevState, GreenMode
 from tango.server import Device, attribute, command, device_property
+from connio import connection_for_url
 
 from ... import dcp3000
 
@@ -20,99 +22,63 @@ ATTR_MAP = {
     'off_setpoint_4': lambda dcp: dcp.off_setpoint(4),
 }
 
+
 class DCP3000(Device):
 
-    address = device_property(dtype=str)
+    green_mode = GreenMode.Asyncio
+
+    url = device_property(dtype=str)
+    baudrate = device_property(dtype=int, default_value=9600)
+    bytesize = device_property(dtype=int, default_value=8)
+    parity = device_property(dtype=str, default_value="N")
 
     dcp = None
 
-    def init_device(self):
-        super().init_device()
+    def url_to_connection_args(self):
+        url = self.url
+        res = urllib.parse.urlparse(url)
+        kwargs = dict(concurrency="async")
+        if res.scheme in {"serial", "rfc2217"}:
+            kwargs.update(dict(baudrate=self.baudrate, bytesize=self.bytesize,
+                               parity=self.parity))
+        return url, kwargs
+
+    async def init_device(self):
+        await super().init_device()
+        url, kwargs = self.url_to_connection_args()
+        conn = connection_for_url(url, **kwargs)
+        self.dcp = dcp3000.DCP3000(conn)
         self.last_values = {}
-        self._reconnect()
 
-    def delete_device(self):
-        super().delete_device()
-        self._disconnect()
-
-    def _try_connect(self):
-        if self.dcp is None:
-            try:
-                conn = dcp3000.serial_for_url(self.address)
-                self.dcp = dcp3000.DCP3000(conn)
-            except Exception as error:
-                self.connection_error = error
-            else:
-                self.connection_error = None
-
-    def _disconnect(self):
-        if self.dcp is not None:
-            self.dcp.close()
-            self.dcp = None
-
-    def _reconnect(self):
-        self._disconnect()
-        self._try_connect()
-
-    def always_executed_hook(self):
-        self._try_connect()
-
-    def _read_attr_hardware(self, indexes):
+    async def read_attr_hardware(self, indexes):
         multi_attr = self.get_device_attr()
         names = [
             multi_attr.get_attr_by_ind(index).get_name().lower()
             for index in indexes
         ]
         funcs = (ATTR_MAP[name] for name in names)
-        values = [func(self.dcp) for func in funcs]
+        values = [await func(self.dcp) for func in funcs]
         self.last_values = dict(zip(names, values))
 
-    def read_attr_hardware(self, indexes):
-        if self.connection_error:
-            raise self.connection_error
-        try:
-            self._read_attr_hardware(indexes)
-        except Exception as error:
-            self._disconnect()
-            raise
-
-    def __always_executed_hook(self):
-        state, status = DevState.ON, "Ready!"
-        try:
-            self._connect()
-            errors = self.dcp.errors()
-        except Exception as error:
-            state = DevState.OFF
-            status = 'Communication error:\n{!r}'.format(error)
-            self._disconnect()
-        else:
-            if errors:
-                state = DevState.FAULT
-                errors.insert(0, 'Hardware error(s):')
-                status = '\n'.join(errors)
-        self.set_state(state)
-        self.set_status(status)
-
-    def dev_state(self):
+    async def dev_state(self):
         state = DevState.ON
-        if self.connection_error:
-            state = DevState.OFF
-        else:
-            errors = self.dcp.errors()
+        try:
+            errors = await self.dcp.errors()
             if errors:
-                state = DevState.FAULT
+                state = DevState.ALARM
+        except:
+            state = DevState.FAULT
         return state
 
-    def dev_status(self):
-        status = 'Ready!'
-        if self.connection_error:
-            status = 'Communication error:\n{!r}'.format(self.connection_error)
-        else:
-            errors = self.dcp.errors()
+    async def dev_status(self):
+        self.__status = 'Ready!'
+        try:
+            errors = await self.dcp.errors()
             if errors:
-                status = 'Hardware error(s):\n' + '\n'.join(errors)
-        self.__status = status
-        return status
+                self.__status = 'Hardware error(s):\n' + '\n'.join(errors)
+        except Exception as error:
+            self.__status = 'Communication error:\n{!r}'.format(error)
+        return self.__status
 
     @attribute(unit='mbar')
     def pressure(self):
