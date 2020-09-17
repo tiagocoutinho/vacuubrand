@@ -27,21 +27,24 @@ consisting of two methods (either the sync or async version is supported):
 * `write_readline(buff: bytes) -> bytes` *or*
 * `write(buff: bytes) -> None` *or*
 
-Usually you end up using a `serial.Serial` object.
+Usually you end up using a `connio.connection_for_url()` object.
 Here is how to connect to a DCP 3000 controller:
 
 ```python
-from vacuubrand.dcp3000 import DCP3000, serial_for_url
+import asyncio
+from connio import connection_for_url
+from vacuubrand.dcp3000 import DCP3000
 
-def main():
-    # could also be a socket bridge: 'socket://<host>:<port>'
-    comm = serial_for_url('/dev/ttyS0')
+
+async def main():
+    # could also be a socket bridge: 'serial-tcp://<host>:<port>'
+    comm = connection_for_url('serial:///dev/ttyS0')
     dcp = DCP3000(comm)
 
-    print(dcp.pressure())
+    print(await dcp.pressure())
 
 
-main()
+asyncio.run(main())
 ```
 
 #### Serial line
@@ -116,9 +119,11 @@ IN_PV_1
 or using the library:
 ```python
 $ python
->>> from vacuubrand.dcp3000 import DCP3000, serial_for_url
->>> dcp = DCP3000('/tmp/dcp3000-1')
->>> print(dcp.actual_pressure)
+>>> from connio import connection_for_url
+>>> from vacuubrand.dcp3000 import DCP3000
+>>> conn = connection_for_url("serial:///tmp/dcp3000-1")
+>>> dcp = DCP3000(conn)
+>>> print(await dcp.actual_pressure())
 1004.1
 ```
 
@@ -133,7 +138,7 @@ Make sure everything is installed with:
 Register a cryocon tango server in the tango database:
 ```
 $ tangoctl server add -s Vacuubrand/test -d DCP3000 test/dcp3000/1
-$ tangoctl device property write -d test/dcp3000/1 -p address -v "/dev/ttyS0"
+$ tangoctl device property write -d test/dcp3000/1 -p url -v "/dev/ttyS0"
 ```
 
 (the above example uses [tangoctl](https://pypi.org/project/tangoctl/). You would need
