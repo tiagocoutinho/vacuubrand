@@ -114,8 +114,6 @@ def serial_for_url(url, *args, **kwargs):
 
 class DCP3000:
 
-    latency = 0.06
-
     def __init__(self, connection):
         """
         Args:
