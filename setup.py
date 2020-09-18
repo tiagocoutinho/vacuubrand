@@ -15,7 +15,7 @@ setup(
     name="vacuubrand",
     author="Tiago Coutinho",
     author_email="tcoutinho@cells.es",
-    version="2.1.0",
+    version="2.1.1",
     description="vacuubrand library",
     long_description=description,
     long_description_content_type="text/markdown",
