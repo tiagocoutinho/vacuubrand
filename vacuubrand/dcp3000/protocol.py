@@ -8,19 +8,15 @@ import threading
 from connio import connection_for_url
 
 
-UNITS = {
-    '0': 'mbar',
-    '1': 'Torr',
-    '2': 'hPa'
-}
+UNITS = {"0": "mbar", "1": "Torr", "2": "hPa"}
 
 
 ERRORS = [
-    'venting valve fault',
-    'overpressure',
-    'pressure transducer fault',
-    'external fault',
-#    'last serial command incorrect'
+    "venting valve fault",
+    "overpressure",
+    "pressure transducer fault",
+    "external fault",
+    #    'last serial command incorrect'
 ]
 
 
@@ -41,19 +37,21 @@ def syncer(func):
 @syncer
 def decode_config(text):
     assert len(text) == 7, text
-    return dict(unit=UNITS[text[1]],
-                acoustic_signal=text[2] == '1',
-                venting_valve_connected=text[3] == '1',
-                fault_indicator_connected=text[4] == '1',
-                nb_active_pressure_transducers=int(text[5]),
-                nb_pressure_transducers=int(text[6]))
+    return dict(
+        unit=UNITS[text[1]],
+        acoustic_signal=text[2] == "1",
+        venting_valve_connected=text[3] == "1",
+        fault_indicator_connected=text[4] == "1",
+        nb_active_pressure_transducers=int(text[5]),
+        nb_pressure_transducers=int(text[6]),
+    )
 
 
 @syncer
 def decode_pressure(text):
     value, unit = text.lower().split()
     value = float(value)
-    if unit == 'torr':
+    if unit == "torr":
         value *= torr_to_mbar
     return value
 
@@ -63,7 +61,7 @@ def decode_pressures(text):
     """decode pressure(s). Always return values in millibar"""
     *values, unit = text.lower().split()
     values = [float(value) for value in values]
-    if unit == 'torr':
+    if unit == "torr":
         values = [value * torr_to_mbar for value in values]
     return values
 
@@ -73,13 +71,13 @@ def decode_errors(text):
     """return a list of errors"""
     assert len(text) == 5, text
     text = text[:-1]
-    return [error for i, error in zip(text, ERRORS) if i == '1']
+    return [error for i, error in zip(text, ERRORS) if i == "1"]
 
 
 @syncer
 def decode_interval(text):
-    minutes, seconds = [int(v) for v in text[:4].split(':')]
-    return minutes*60 + seconds
+    minutes, seconds = [int(v) for v in text[:4].split(":")]
+    return minutes * 60 + seconds
 
 
 def encode(request):
@@ -104,15 +102,15 @@ class BaseProtocol:
     def __init__(self, connection, log=None):
         self.conn = connection
         self._last_command = 0
-        self._log = log or logging.getLogger("vacuubrand.dcp3000.{}"
-                                             .format(type(self).__name__))
+        self._log = log or logging.getLogger(
+            "vacuubrand.dcp3000.{}".format(type(self).__name__)
+        )
 
     def _wait_time(self):
         return self._last_command + self.COMMAND_LATENCY - time.monotonic()
 
 
 class AIOProtocol(BaseProtocol):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
