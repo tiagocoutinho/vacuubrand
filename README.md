@@ -136,7 +136,7 @@ Make sure everything is installed with:
 
 `$ pip install vacuubrand[tango]`
 
-Register a cryocon tango server in the tango database:
+Register a Vacuubrand tango server in the tango database:
 ```
 $ tangoctl server add -s Vacuubrand/test -d DCP3000 test/dcp3000/1
 $ tangoctl device property write -d test/dcp3000/1 -p url -v "/dev/ttyS0"
