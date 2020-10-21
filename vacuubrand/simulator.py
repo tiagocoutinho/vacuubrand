@@ -64,7 +64,7 @@ class DCP3000(BaseDevice):
         self._log.debug("request %r", line)
         line = line.decode().strip()
         result = None
-        cmd, *args = line.split()
+        cmd, *args = line.split(" ", 1)
         if cmd == "OUT_SP_1":
             self._config["IN_SP_1"] = to_hh_ss(args[0])
         elif line.startswith("OUT_SP_2"):
