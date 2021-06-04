@@ -10,13 +10,11 @@
 
     devices:
     - class: DCP3000
-      package: vacuubrand.simulator
+      name: vacuubrand-1
       transports:
       - type: serial
         url: /tmp/dcp3000-1
 """
-
-import time
 
 from sinstruments.simulator import BaseDevice
 

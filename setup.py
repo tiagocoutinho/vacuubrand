@@ -22,11 +22,14 @@ setup(
     entry_points={
         "console_scripts": [
             "Vacuubrand = vacuubrand.tango.server:main [tango]",
+        ],
+        'sinstruments.device': [
+            'DCP3000 = vacuubrand.simulator:DCP3000 [simulator]'
         ]
     },
     extras_require={
         "tango": ["pytango>=9"],
-        "simulator": ["sinstruments>=1"]
+        "simulator": ["sinstruments>=1.3"]
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
