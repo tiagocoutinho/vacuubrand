@@ -2,7 +2,6 @@
 
 """The setup script."""
 
-import sys
 from setuptools import setup, find_packages
 
 requirements = ["connio"]
@@ -10,6 +9,14 @@ requirements = ["connio"]
 with open("README.md") as f:
     description = f.read()
 
+extras_require={
+    "tango": ["pytango"],
+    "simulator": ["sinstruments>=1.3"]
+}
+
+extras_require["all"] = list(
+    {pkg for pkgs in extras_require.values() for pkg in pkgs}
+)
 
 setup(
     name="vacuubrand",
@@ -27,10 +34,7 @@ setup(
             'DCP3000 = vacuubrand.simulator:DCP3000 [simulator]'
         ]
     },
-    extras_require={
-        "tango": ["pytango>=9"],
-        "simulator": ["sinstruments>=1.3"]
-    },
+    extras_require=extras_require,
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
