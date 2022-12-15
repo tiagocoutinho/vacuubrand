@@ -90,6 +90,7 @@ explicitly:
 devices:
 - class: DCP3000
   package: vacuubrand.simulator
+  name: vacuum-01
   transports:
   - type: serial
     url: /tmp/dcp3000-1
@@ -124,7 +125,7 @@ $ python
 >>> from vacuubrand.dcp3000 import DCP3000
 >>> conn = connection_for_url("serial:///tmp/dcp3000-1")
 >>> dcp = DCP3000(conn)
->>> print(await dcp.actual_pressure())
+>>> print(await dcp.pressure())
 1004.1
 ```
 
