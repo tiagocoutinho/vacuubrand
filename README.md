@@ -1,6 +1,6 @@
 # Vacuubrand library
 
-<img align="right" alt="DCP3000 pirani" width="350"
+<img align="right" alt="DCP3000 pirani" width="250"
      src="https://github.com/tiagocoutinho/vacuubrand/raw/master/docs/dcp_3000_pirani.png" />
 
 This library is used to control basic features of a Vacuubrand controller.
